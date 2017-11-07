@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="D:\GroundCheck\icon">
+        <file>camera/g1.png</file>
+        <file>camera/g2.png</file>
+        <file>camera/g3.png</file>
+        <file>camera/g4.png</file>
+        <file>camera/g5.png</file>
+        <file>camera/g6.png</file>
+        <file>camera/g7.png</file>
+        <file>camera/g8.png</file>
+        <file>camera/g9.png</file>
+        <file>camera/g10.png</file>
+        <file>camera/g11.png</file>
+        <file>camera/g12.png</file>
+        <file>camera/g13.png</file>
+        <file>camera/g14.png</file>
+        <file>camera/g15.png</file>
+        <file>camera/g16.png</file>
+        <file>camera/g17.png</file>
+        <file>camera/g18.png</file>
+    </qresource>
+</RCC>
