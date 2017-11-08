@@ -39,7 +39,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-QImage ScaleImage2Label(QImage qImage, QLabel* qLabel)
+QImage __ScaleImage2Label(QImage qImage, QLabel* qLabel)
 {
     QImage qScaledImage;
     QSize qImageSize = qImage.size();
@@ -55,7 +55,7 @@ QImage ScaleImage2Label(QImage qImage, QLabel* qLabel)
     return qScaledImage;
 }
 
-QImage *IplImageToGrayQImage(const IplImage *img)
+QImage *__IplImageToGrayQImage(const IplImage *img)
 {
     QImage *image;
     uchar *imgData=(uchar *)img->imageData;
@@ -63,7 +63,7 @@ QImage *IplImageToGrayQImage(const IplImage *img)
     return image;
 }
 
-QImage *IplImageToQImage(IplImage *img)
+QImage *__IplImageToQImage(IplImage *img)
 {
     QImage *image;
     cvCvtColor(img,img,CV_BGR2RGB);
@@ -72,7 +72,7 @@ QImage *IplImageToQImage(IplImage *img)
     return image;
 }
 
-void QImageToIplImage(const QImage * qImage, IplImage **IplImageBuffer)
+void __QImageToIplImage(const QImage * qImage, IplImage **IplImageBuffer)
 {
     int width = qImage->width();
     int height = qImage->height();
@@ -84,11 +84,7 @@ void QImageToIplImage(const QImage * qImage, IplImage **IplImageBuffer)
     QString h = QString::number(height, 10);
     QString w = QString::number(width, 10);
     qDebug()<<"height =" + h.toLatin1() + "width = " + w.toLatin1()<<endl;
-#if 0
-    if(NULL != IplImageBuffer){
-        cvReleaseImage(&IplImageBuffer);
-    }
-#endif
+
     pIplImage = cvCreateImage(Size, IPL_DEPTH_8U, 3);
     h = QString::number(pIplImage->height, 10);
     w = QString::number(pIplImage->width, 10);
@@ -99,6 +95,62 @@ void QImageToIplImage(const QImage * qImage, IplImage **IplImageBuffer)
             cvSet2D(pIplImage, y, x, CV_RGB(qRed(rgb), qGreen(rgb), qBlue(rgb)));
         }
     }
+}
+
+double max(double a, double b)
+{
+    return (a > b)?a:b;
+}
+
+double min(double a, double b)
+{
+    return (a < b)?a:b;
+}
+
+void __ImageHighLightRemove(IplImage* src, IplImage* dst)
+{
+    int height=src->height;
+    int width=src->width;
+    int step=src->widthStep;
+    int i=0,j=0;
+    qDebug()<<QString("height:%1, width:%2, step:%3\n").arg(height).arg(width).arg(step)<<endl;
+    unsigned char R,G,B,MaxC;
+    double alpha,beta,alpha_r,alpha_g,alpha_b,beta_r,beta_g,beta_b,temp=0,realbeta=0,minalpha=0;
+    double gama,gama_r,gama_g,gama_b;
+    unsigned char* srcData;
+    unsigned char* dstData;
+    for (i=0;i<height;i++) {
+        srcData=(unsigned char*)src->imageData+i*step;
+        dstData=(unsigned char*)dst->imageData+i*step;
+        for (j=0;j<width;j++) {
+            R=srcData[j*3];
+            G=srcData[j*3+1];
+            B=srcData[j*3+2];
+
+            alpha_r=(double)R/(double)(R+G+B);
+            alpha_g=(double)G/(double)(R+G+B);
+            alpha_b=(double)B/(double)(R+G+B);
+            alpha=max(max(alpha_r,alpha_g),alpha_b);
+            MaxC=max(max(R,G),B);                           // compute the maximum of the rgb channels
+            minalpha=min(min(alpha_r,alpha_g),alpha_b);
+            beta_r=1-(alpha-alpha_r)/(3*alpha-1);
+            beta_g=1-(alpha-alpha_g)/(3*alpha-1);
+            beta_b=1-(alpha-alpha_b)/(3*alpha-1);
+            beta=max(max(beta_r,beta_g),beta_b);            // gama is used to approximiate the beta
+            gama_r=(alpha_r-minalpha)/(1-3*minalpha);
+            gama_g=(alpha_g-minalpha)/(1-3*minalpha);
+            gama_b=(alpha_b-minalpha)/(1-3*minalpha);
+            gama=max(max(gama_r,gama_g),gama_b);
+
+            temp=(gama*(R+G+B)-MaxC)/(3*gama-1);
+            //beta=(alpha-minalpha)/(1-3*minalpha)+0.08;
+            //temp=(gama*(R+G+B)-MaxC)/(3*gama-1);
+            dstData[j*3]=R-(unsigned char)(temp+0.5);
+            dstData[j*3+1]=G-(unsigned char)(temp+0.5);
+            dstData[j*3+2]=B-(unsigned char)(temp+0.5);
+        }
+    }
+    qDebug()<<"End of high light remove"<<endl;
 }
 
 QString __Default_Cfg_Param_String(void)
@@ -149,22 +201,22 @@ void MainWindow::ShowPorcessedPic(unsigned int cam_id, QImage *qBinImage)
 {
     switch(cam_id){
         case 0:
-            ScaleImage2Label(*qBinImage, ui->cam0_processed_pic);
+            __ScaleImage2Label(*qBinImage, ui->cam0_processed_pic);
             ui->cam0_processed_pic->setPixmap(QPixmap::fromImage(*qBinImage));
             ui->cam0_processed_pic->setAlignment(Qt::AlignCenter);
             break;
         case 1:
-            ScaleImage2Label(*qBinImage, ui->cam1_processed_pic);
+            __ScaleImage2Label(*qBinImage, ui->cam1_processed_pic);
             ui->cam1_processed_pic->setPixmap(QPixmap::fromImage(*qBinImage));
             ui->cam1_processed_pic->setAlignment(Qt::AlignCenter);
             break;
         case 2:
-            ScaleImage2Label(*qBinImage, ui->cam2_processed_pic);
+            __ScaleImage2Label(*qBinImage, ui->cam2_processed_pic);
             ui->cam2_processed_pic->setPixmap(QPixmap::fromImage(*qBinImage));
             ui->cam2_processed_pic->setAlignment(Qt::AlignCenter);
             break;
         case 3:
-            ScaleImage2Label(*qBinImage, ui->cam3_processed_pic);
+            __ScaleImage2Label(*qBinImage, ui->cam3_processed_pic);
             ui->cam3_processed_pic->setPixmap(QPixmap::fromImage(*qBinImage));
             ui->cam3_processed_pic->setAlignment(Qt::AlignCenter);
             break;
@@ -175,22 +227,22 @@ void MainWindow::ShowSourcePic(unsigned int cam_id, QImage *qColorImage)
 {
     switch(cam_id){
         case 0:
-            ScaleImage2Label(*qColorImage, ui->cam0_source_pic);
+            __ScaleImage2Label(*qColorImage, ui->cam0_source_pic);
             ui->cam0_source_pic->setPixmap(QPixmap::fromImage(*qColorImage));
             ui->cam0_source_pic->setAlignment(Qt::AlignCenter);
             break;
         case 1:
-            ScaleImage2Label(*qColorImage, ui->cam1_source_pic);
+            __ScaleImage2Label(*qColorImage, ui->cam1_source_pic);
             ui->cam1_source_pic->setPixmap(QPixmap::fromImage(*qColorImage));
             ui->cam1_source_pic->setAlignment(Qt::AlignCenter);
             break;
         case 2:
-            ScaleImage2Label(*qColorImage, ui->cam2_source_pic);
+            __ScaleImage2Label(*qColorImage, ui->cam2_source_pic);
             ui->cam2_source_pic->setPixmap(QPixmap::fromImage(*qColorImage));
             ui->cam2_source_pic->setAlignment(Qt::AlignCenter);
             break;
         case 3:
-            ScaleImage2Label(*qColorImage, ui->cam3_source_pic);
+            __ScaleImage2Label(*qColorImage, ui->cam3_source_pic);
             ui->cam3_source_pic->setPixmap(QPixmap::fromImage(*qColorImage));
             ui->cam3_source_pic->setAlignment(Qt::AlignCenter);
             break;
@@ -255,15 +307,27 @@ int MainWindow::Pic_Process(unsigned int cam_id)
     SelectArea[0][2] = cvPoint(cfg_param[cam_id].checkarea[2].x, cfg_param[cam_id].checkarea[2].y);
     SelectArea[0][3] = cvPoint(cfg_param[cam_id].checkarea[3].x, cfg_param[cam_id].checkarea[3].y);
     IplImage *ColorImg = cvLoadImage(file_name.toLatin1().data());
+#if 0
+    IplImage *HlRmImg = cvLoadImage(file_name.toLatin1().data());
+#endif
     IplImage *GrayImage = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
     IplImage *BinImage = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
-    //IplImage *AdpBinImage_M = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
-    //IplImage *AdpBinImage_G = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
+#if 0
+    IplImage *AdpBinImage_M = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
+    IplImage *AdpBinImage_G = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
+#endif
     IplImage *EroImage = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
     IplImage *DiaImage = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
     IplImage *EmptyImage = cvCreateImage(cvSize(640,480), IPL_DEPTH_8U, 1 );
     cvFillPoly(EmptyImage,SelectArea,arr,1,CV_RGB(255,255,255));
     IplImage * pImageChannel[4] = {0,0,0,0};//分别保存4个通道的灰度图像
+#if 0
+    __ImageHighLightRemove(ColorImg, HlRmImg);
+    cvNamedWindow("Color",1);
+    cvNamedWindow("HLRM",1);
+    cvShowImage("Color", ColorImg);
+    cvShowImage("HLRM", HlRmImg);
+#endif
     //创建各个灰度图像
     for(int i = 0; i < ColorImg->nChannels; i++)
         pImageChannel[i] = cvCreateImage(cvGetSize(ColorImg),ColorImg->depth,1);
@@ -295,7 +359,7 @@ int MainWindow::Pic_Process(unsigned int cam_id)
     cvAnd(EmptyImage, BinImage, BinImage, NULL);
     cvErode(BinImage, EroImage, NULL, cfg_param[cam_id].ero_round);
     cvDilate(EroImage, DiaImage, NULL, cfg_param[cam_id].dia_round);
-    QImage *qBinImage = IplImageToGrayQImage(DiaImage);
+    QImage *qBinImage = __IplImageToGrayQImage(DiaImage);
     ShowPorcessedPic(cam_id, qBinImage);
     /* 查找连通域，画框框 */
     CvSeq *contour = 0;
@@ -318,19 +382,24 @@ int MainWindow::Pic_Process(unsigned int cam_id)
     result += QString("Valid Area(s):%1\n").arg(valid_area_num);
     ResultSet(cam_id, &result);
     cvPolyLine(ColorImg, SelectArea,arr,1,1,CV_RGB(250,0,0));
-    QImage *qColorImage = IplImageToQImage(ColorImg);
+    QImage *qColorImage = __IplImageToQImage(ColorImg);
     ShowSourcePic(cam_id, qColorImage);
 
     cvReleaseMemStorage(&storage);
     cvReleaseImage(&ColorImg);
+#if 0
+    cvReleaseImage(&HlRmImg);
+#endif
     cvReleaseImage(&pImageChannel[0]);
     cvReleaseImage(&pImageChannel[1]);
     cvReleaseImage(&pImageChannel[2]);
     cvReleaseImage(&pImageChannel[3]);
     cvReleaseImage(&GrayImage);
     cvReleaseImage(&BinImage);
-    //cvReleaseImage(&AdpBinImage_M);
-    //cvReleaseImage(&AdpBinImage_G);
+#if 0
+    cvReleaseImage(&AdpBinImage_M);
+    cvReleaseImage(&AdpBinImage_G);
+#endif
     cvReleaseImage(&EroImage);
     cvReleaseImage(&DiaImage);
     cvReleaseImage(&EmptyImage);
@@ -340,7 +409,7 @@ int MainWindow::Pic_Process(unsigned int cam_id)
 
 int MainWindow::Cam_Config_File_Load(unsigned int cam_id)
 {
-    int data_array[15] = {0};
+    int data_array[17] = {0};
     QString fileName;
     if(cam_id >= CAM_NUM_MAX){
         return ERR_CAM_ID;
@@ -753,7 +822,7 @@ void MainWindow::on_cam0_src_pic_open_bt_clicked()
     if(!QString(pic_path).isEmpty()){
         ui->cam0_src_pic_path_line_edit->setText(pic_path);
         QImage *ori_Image = new QImage(pic_path);
-        ScaleImage[0] = ScaleImage2Label(*ori_Image, ui->cam0_source_pic);
+        ScaleImage[0] = __ScaleImage2Label(*ori_Image, ui->cam0_source_pic);
         ui->cam0_source_pic->setPixmap(QPixmap::fromImage(ScaleImage[0]));
         ui->cam0_source_pic->setAlignment(Qt::AlignCenter);
         PicLoadFlag[0] = 1;
@@ -774,7 +843,7 @@ void MainWindow::on_cam0_cfg_local_save_clicked()
     QString crt_cfg_param = QString("%1 Bin\n%2 Inv\n%3 Otus\n").arg(pCfgParam->bin_threshold).arg(pCfgParam->invert_flag).arg(pCfgParam->otus_flag);
     crt_cfg_param += QString("%1 Ero_Round\n%2 Dia_Round\n").arg(pCfgParam->ero_round).arg(pCfgParam->dia_round);
     crt_cfg_param += QString("%1 PinOut(ms)\n").arg(pCfgParam->pinout_ms);
-    crt_cfg_param += QString("%1 Area_Low\n%2 Area_High\n").arg(pCfgParam->abnormal_area_low).arg(pCfgParam->abnormal_area_high);
+    crt_cfg_param += QString("%1 Area_Low\n%2 Area_High\n%3 Channel\n").arg(pCfgParam->abnormal_area_low).arg(pCfgParam->abnormal_area_high).arg(pCfgParam->channel);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[0].x).arg(pCfgParam->checkarea[0].y);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[1].x).arg(pCfgParam->checkarea[1].y);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[2].x).arg(pCfgParam->checkarea[2].y);
@@ -951,7 +1020,7 @@ void MainWindow::on_cam1_src_pic_open_bt_clicked()
     if(!QString(pic_path).isEmpty()){
         ui->cam1_src_pic_path_line_edit->setText(pic_path);
         QImage *ori_Image = new QImage(pic_path);
-        ScaleImage[1] = ScaleImage2Label(*ori_Image, ui->cam1_source_pic);
+        ScaleImage[1] = __ScaleImage2Label(*ori_Image, ui->cam1_source_pic);
         ui->cam1_source_pic->setPixmap(QPixmap::fromImage(ScaleImage[1]));
         ui->cam1_source_pic->setAlignment(Qt::AlignCenter);
         PicLoadFlag[1] = 1;
@@ -972,7 +1041,7 @@ void MainWindow::on_cam1_cfg_local_save_clicked()
     QString crt_cfg_param = QString("%1 Bin\n%2 Inv\n%3 Otus\n").arg(pCfgParam->bin_threshold).arg(pCfgParam->invert_flag).arg(pCfgParam->otus_flag);
     crt_cfg_param += QString("%1 Ero_Round\n%2 Dia_Round\n").arg(pCfgParam->ero_round).arg(pCfgParam->dia_round);
     crt_cfg_param += QString("%1 PinOut(ms)\n").arg(pCfgParam->pinout_ms);
-    crt_cfg_param += QString("%1 Area_Low\n%2 Area_High\n").arg(pCfgParam->abnormal_area_low).arg(pCfgParam->abnormal_area_high);
+    crt_cfg_param += QString("%1 Area_Low\n%2 Area_High\n%3 Channel\n").arg(pCfgParam->abnormal_area_low).arg(pCfgParam->abnormal_area_high).arg(pCfgParam->channel);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[0].x).arg(pCfgParam->checkarea[0].y);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[1].x).arg(pCfgParam->checkarea[1].y);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[2].x).arg(pCfgParam->checkarea[2].y);
@@ -1149,7 +1218,7 @@ void MainWindow::on_cam2_src_pic_open_bt_clicked()
     if(!QString(pic_path).isEmpty()){
         ui->cam2_src_pic_path_line_edit->setText(pic_path);
         QImage *ori_Image = new QImage(pic_path);
-        ScaleImage[2] = ScaleImage2Label(*ori_Image, ui->cam2_source_pic);
+        ScaleImage[2] = __ScaleImage2Label(*ori_Image, ui->cam2_source_pic);
         ui->cam2_source_pic->setPixmap(QPixmap::fromImage(ScaleImage[2]));
         ui->cam2_source_pic->setAlignment(Qt::AlignCenter);
         PicLoadFlag[2] = 1;
@@ -1170,7 +1239,7 @@ void MainWindow::on_cam2_cfg_local_save_clicked()
     QString crt_cfg_param = QString("%1 Bin\n%2 Inv\n%3 Otus\n").arg(pCfgParam->bin_threshold).arg(pCfgParam->invert_flag).arg(pCfgParam->otus_flag);
     crt_cfg_param += QString("%1 Ero_Round\n%2 Dia_Round\n").arg(pCfgParam->ero_round).arg(pCfgParam->dia_round);
     crt_cfg_param += QString("%1 PinOut(ms)\n").arg(pCfgParam->pinout_ms);
-    crt_cfg_param += QString("%1 Area_Low\n%2 Area_High\n").arg(pCfgParam->abnormal_area_low).arg(pCfgParam->abnormal_area_high);
+    crt_cfg_param += QString("%1 Area_Low\n%2 Area_High\n%3 Channel\n").arg(pCfgParam->abnormal_area_low).arg(pCfgParam->abnormal_area_high).arg(pCfgParam->channel);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[0].x).arg(pCfgParam->checkarea[0].y);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[1].x).arg(pCfgParam->checkarea[1].y);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[2].x).arg(pCfgParam->checkarea[2].y);
@@ -1346,7 +1415,7 @@ void MainWindow::on_cam3_src_pic_open_bt_clicked()
     if(!QString(pic_path).isEmpty()){
         ui->cam3_src_pic_path_line_edit->setText(pic_path);
         QImage *ori_Image = new QImage(pic_path);
-        ScaleImage[3] = ScaleImage2Label(*ori_Image, ui->cam3_source_pic);
+        ScaleImage[3] = __ScaleImage2Label(*ori_Image, ui->cam3_source_pic);
         ui->cam3_source_pic->setPixmap(QPixmap::fromImage(ScaleImage[3]));
         ui->cam3_source_pic->setAlignment(Qt::AlignCenter);
         PicLoadFlag[3] = 1;
@@ -1367,7 +1436,7 @@ void MainWindow::on_cam3_cfg_local_save_clicked()
     QString crt_cfg_param = QString("%1 Bin\n%2 Inv\n%3 Otus\n").arg(pCfgParam->bin_threshold).arg(pCfgParam->invert_flag).arg(pCfgParam->otus_flag);
     crt_cfg_param += QString("%1 Ero_Round\n%2 Dia_Round\n").arg(pCfgParam->ero_round).arg(pCfgParam->dia_round);
     crt_cfg_param += QString("%1 PinOut(ms)\n").arg(pCfgParam->pinout_ms);
-    crt_cfg_param += QString("%1 Area_Low\n%2 Area_High\n").arg(pCfgParam->abnormal_area_low).arg(pCfgParam->abnormal_area_high);
+    crt_cfg_param += QString("%1 Area_Low\n%2 Area_High\n%3 Channel\n").arg(pCfgParam->abnormal_area_low).arg(pCfgParam->abnormal_area_high).arg(pCfgParam->channel);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[0].x).arg(pCfgParam->checkarea[0].y);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[1].x).arg(pCfgParam->checkarea[1].y);
     crt_cfg_param += QString("%1\n%2\n").arg(pCfgParam->checkarea[2].x).arg(pCfgParam->checkarea[2].y);
@@ -1693,12 +1762,12 @@ void MainWindow::on_cam0_check_area_point_right_clicked()
 
 void MainWindow::on_cam1_check_area_point_up_clicked()
 {
-    int activePoint = AreaSelectActivePoint[0];
-    CFG_PARAM *pCfgParam = &cfg_param[0];
+    int activePoint = AreaSelectActivePoint[1];
+    CFG_PARAM *pCfgParam = &cfg_param[1];
     if(pCfgParam->checkarea[activePoint].y > 1){
         pCfgParam->checkarea[activePoint].y -= 1;
         ui->cam0_check_area_point_vslider->setValue(pCfgParam->checkarea[activePoint].y);
-        MainWindow::Pic_Process(0);
+        MainWindow::Pic_Process(1);
     }
 }
 
